@@ -44,8 +44,8 @@ try {
   run(npm, [
     'install',
     '--ignore-scripts',
-    '--offline',
     '--no-audit',
+    '--no-fund',
     corePackage,
     cliPackage,
   ]);
