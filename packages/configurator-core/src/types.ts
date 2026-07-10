@@ -1,6 +1,10 @@
 export interface AdapterContext {
   /** Home directory used to resolve all user-scoped client files. */
   homeDir: string;
+  /** Explicit environment snapshot used for client-specific path overrides. */
+  environment?: Readonly<Record<string, string | undefined>>;
+  /** Platform override for deterministic cross-platform path resolution. */
+  platform?: string;
 }
 
 export interface ModelOption {
@@ -22,11 +26,20 @@ export interface PlanWarning {
   destructive?: boolean;
 }
 
+export interface FileExpectation {
+  /** Whether the file existed when the adapter read it. */
+  existed: boolean;
+  /** SHA-256 of the exact bytes used to build the plan. */
+  sha256?: string;
+}
+
 export interface PlannedWrite {
   clientId: string;
   path: string;
   content: string;
   containsSecret: boolean;
+  /** Prevents a stale plan from overwriting a file changed after planning. */
+  expected: FileExpectation;
   mode?: number;
 }
 

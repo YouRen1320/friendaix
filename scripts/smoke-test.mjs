@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -68,8 +68,68 @@ try {
   if (!help.includes('friendaix configure')) {
     throw new Error('CLI help smoke test failed');
   }
+  const invalid = spawnSync(node, [cliPath, 'not-a-command'], {
+    cwd: temporaryDirectory,
+    encoding: 'utf8',
+    timeout: 30_000,
+    env: { ...process.env, HOME: temporaryDirectory },
+  });
+  if (
+    invalid.status === 0 ||
+    !invalid.stderr.includes('未知命令：not-a-command')
+  ) {
+    throw new Error(
+      `CLI invalid-command smoke test failed\n${invalid.stdout}\n${invalid.stderr}`,
+    );
+  }
+  writeFileSync(
+    join(temporaryDirectory, 'consumer.mts'),
+    `import {
+  type AdapterPlan,
+  readOptionalTextFileWithExpectation,
+} from 'friendaix-core';
+
+const read = await readOptionalTextFileWithExpectation('/tmp/example');
+const plan: AdapterPlan = {
+  clientId: 'example',
+  clientName: 'Example',
+  warnings: [],
+  writes: [{
+    clientId: 'example',
+    path: '/tmp/example',
+    content: read.content ?? '',
+    containsSecret: false,
+    expected: read.expectation,
+  }],
+};
+void plan;
+`,
+  );
+  writeFileSync(
+    join(temporaryDirectory, 'tsconfig.json'),
+    `${JSON.stringify(
+      {
+        compilerOptions: {
+          module: 'NodeNext',
+          moduleResolution: 'NodeNext',
+          target: 'ES2022',
+          strict: true,
+          noEmit: true,
+          types: [],
+        },
+        files: ['consumer.mts'],
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  run(node, [
+    join(process.cwd(), 'node_modules/typescript/bin/tsc'),
+    '--project',
+    join(temporaryDirectory, 'tsconfig.json'),
+  ]);
   console.log(
-    `friendaix ${version}: tarball install and CLI smoke test passed`,
+    `friendaix ${version}: tarball install, CLI, and public types passed`,
   );
 } finally {
   rmSync(temporaryDirectory, { recursive: true, force: true });

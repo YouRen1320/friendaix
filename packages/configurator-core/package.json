@@ -19,7 +19,8 @@
   "scripts": {
     "build": "tsup",
     "check": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "npm run check && npm run test && npm run build"
   },
   "engines": {
     "node": ">=20.12"
@@ -48,6 +49,7 @@
     "provenance": true
   },
   "dependencies": {
+    "jsonc-parser": "^3.3.1",
     "smol-toml": "^1.7.0"
   },
   "devDependencies": {

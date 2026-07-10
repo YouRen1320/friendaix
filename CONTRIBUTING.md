@@ -10,6 +10,8 @@
 
 ## 本地开发
 
+需要 Node.js 20.19 或更高版本。
+
 ```bash
 npm ci
 npm run check
@@ -30,4 +32,4 @@ npm run smoke
 
 ## 发布
 
-只有维护者可以发布。发布通过 GitHub Release 触发 `publish.yml`，先发布 `friendaix-core`，再发布 `friendaix`。禁止把 npm 写入 token 提交到仓库或长期保存在项目 `.npmrc`。
+只有维护者可以发布。发布通过 GitHub Release 触发 `publish.yml`，先发布 `friendaix-core`，再发布 `friendaix`。新包首次建立 Trusted Publisher 的 bootstrap 流程见 README。禁止把 npm 写入 token 提交到仓库或长期保存在项目 `.npmrc`。

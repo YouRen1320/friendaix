@@ -83,7 +83,7 @@ export function probeClaude(
       headers: {
         'content-type': 'application/json',
         'anthropic-version': '2023-06-01',
-        'x-api-key': apiKey,
+        authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model,

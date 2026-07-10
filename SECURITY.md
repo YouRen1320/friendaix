@@ -23,6 +23,9 @@ FriendAIX 会修改用户级 AI 客户端配置，因此以下行为被视为安
 - FriendAIX state 不得保存 API Key；
 - POSIX 上含密钥文件和备份权限必须是 `0600`；Windows 使用当前用户目录 ACL；
 - 每次多客户端写入必须是可回滚事务；
+- 计划生成后发生变化的配置文件不得被旧计划静默覆盖；
+- 配置目标和备份内容必须是普通文件，不跟随符号链接；
+- 中断事务恢复必须清理受管目标旁遗留的 FriendAIX 原子写入临时文件；
 - 恢复目标必须属于 adapter 声明的允许路径；
 - npm 发布必须使用 Trusted Publishing/OIDC 和 provenance。
 

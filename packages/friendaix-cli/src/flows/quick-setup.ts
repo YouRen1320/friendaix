@@ -17,12 +17,11 @@ import {
   applyConfiguration,
   errorMessage,
   pathExists,
-  type AdapterContext,
   type AdapterPlan,
   type ConfigureInput,
 } from 'friendaix-core';
 import { fetchModels, probeClaude, probeCodex, probeOpenCode } from '../api.js';
-import { ALL_CLIENTS } from '../clients.js';
+import { adapterContext, ALL_CLIENTS } from '../clients.js';
 import { claudeModels, resolveModels } from '../models.js';
 import { TOKEN_PORTAL_URL } from '../preset.js';
 import { chooseSite, pingAll } from '../sites.js';
@@ -38,7 +37,7 @@ export async function runQuickSetup(
   options: QuickSetupOptions = {},
 ): Promise<void> {
   const homeDir = options.homeDir ?? homedir();
-  const context: AdapterContext = { homeDir };
+  const context = adapterContext(homeDir);
   const state = await readState(homeDir);
   intro(pc.cyan(options.dryRun ? ' 配置预览（不会写入） ' : ' 快速配置 '));
 
@@ -162,7 +161,7 @@ export async function runQuickSetup(
               primaryModel: resolvedModels.openCodePrimary,
               smallModel: resolvedModels.openCodeSmall,
             }
-          : {}),
+          : { primaryModel: resolvedModels.codexModel }),
     };
     plans.push(await client.plan(modelInput, context));
   }
@@ -175,12 +174,14 @@ export async function runQuickSetup(
       destructiveWarnings.map((warning) => `• ${warning.message}`).join('\n'),
       '需要确认的登录变更',
     );
-    const approved = await confirm({
-      message: '确认执行以上变更？所有旧文件会先进入事务备份。',
-    });
-    if (isCancel(approved) || !approved) {
-      cancel('已取消，未修改任何配置。');
-      return;
+    if (!options.dryRun) {
+      const approved = await confirm({
+        message: '确认执行以上变更？所有旧文件会先进入事务备份。',
+      });
+      if (isCancel(approved) || !approved) {
+        cancel('已取消，未修改任何配置。');
+        return;
+      }
     }
   }
 
@@ -231,7 +232,7 @@ export async function runQuickSetup(
             ? await probeCodex(
                 selectedSite.site.baseUrl,
                 key,
-                resolvedModels.codexProbe,
+                resolvedModels.codexModel,
               )
             : await probeOpenCode(
                 selectedSite.site.baseUrl,
@@ -252,6 +253,8 @@ export async function runQuickSetup(
       clientsConfigured: selectedIds,
     },
     homeDir,
-  );
+  ).catch((error: unknown) => {
+    log.warn(`配置已写入，但保存 FriendAIX 状态失败：${errorMessage(error)}`);
+  });
   outro(`${pc.green('配置完成 ✓')}\n备份：${pc.dim(backup.directory)}`);
 }

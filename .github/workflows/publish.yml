@@ -13,21 +13,24 @@ jobs:
     runs-on: ubuntu-latest
     environment: npm
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
-      - run: npm install --global npm@latest
+      - run: npm install --global npm@11.18.0
       - run: npm ci
       - run: npm run check
       - run: npm test
       - run: npm run build
+      - run: npm run pack:check
       - run: npm run smoke
+      - run: npm audit --omit=dev --audit-level=high
       - name: Verify release version
         run: |
           test "v$(node -p "require('./packages/friendaix-cli/package.json').version")" = "${{ github.event.release.tag_name }}"
           test "$(node -p "require('./packages/configurator-core/package.json').version")" = "$(node -p "require('./packages/friendaix-cli/package.json').version")"
+          test "$(node -p "require('./package.json').version")" = "$(node -p "require('./packages/friendaix-cli/package.json').version")"
       - run: npm publish --workspace=friendaix-core --access public
       - run: npm publish --workspace=friendaix --access public

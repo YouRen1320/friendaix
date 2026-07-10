@@ -2,7 +2,7 @@ import type { ModelOption } from 'friendaix-core';
 import {
   DEFAULT_CLAUDE_MODEL,
   DEFAULT_CLAUDE_SMALL_MODEL,
-  DEFAULT_CODEX_PROBE_MODEL,
+  DEFAULT_CODEX_MODEL,
   DEFAULT_OPENCODE_MODEL,
   DEFAULT_OPENCODE_SMALL_MODEL,
 } from './preset.js';
@@ -28,7 +28,7 @@ function preferredModel(
 export interface ResolvedModels {
   claudePrimary: string;
   claudeSmall: string;
-  codexProbe: string;
+  codexModel: string;
   openCodePrimary: string;
   openCodeSmall: string;
 }
@@ -41,7 +41,7 @@ export function resolveModels(
     return {
       claudePrimary: selectedClaudeModel ?? DEFAULT_CLAUDE_MODEL,
       claudeSmall: DEFAULT_CLAUDE_SMALL_MODEL,
-      codexProbe: DEFAULT_CODEX_PROBE_MODEL,
+      codexModel: DEFAULT_CODEX_MODEL,
       openCodePrimary: DEFAULT_OPENCODE_MODEL,
       openCodeSmall: DEFAULT_OPENCODE_SMALL_MODEL,
     };
@@ -58,12 +58,12 @@ export function resolveModels(
       const lower = id.toLowerCase();
       return lower.startsWith('claude') && lower.includes('haiku');
     }) ?? claudePrimary;
-  const codexProbe =
-    preferredModel(models, [DEFAULT_CODEX_PROBE_MODEL], (id) =>
+  const codexModel =
+    preferredModel(models, [DEFAULT_CODEX_MODEL], (id) =>
       /^(gpt|o\d)/i.test(id),
     ) ?? models[0]!.id;
   const openCodePrimary =
-    preferredModel(models, [DEFAULT_OPENCODE_MODEL, codexProbe]) ??
+    preferredModel(models, [DEFAULT_OPENCODE_MODEL, codexModel]) ??
     models[0]!.id;
   const openCodeSmall =
     preferredModel(
@@ -75,7 +75,7 @@ export function resolveModels(
   return {
     claudePrimary,
     claudeSmall,
-    codexProbe,
+    codexModel,
     openCodePrimary,
     openCodeSmall,
   };

@@ -2,11 +2,15 @@
 
 0.3.0 是一次有意的破坏性整理，目标是修复密钥重复保存和不完整恢复问题。
 
+最低运行版本从旧版的 Node.js 20 提升到 Node.js 20.12。仓库开发工具链需要 Node.js 20.19，但发布 tarball 会单独验证 20.12 运行兼容性。
+
 ## 状态文件
 
 0.2.x 可能在 `~/.friendaix/state.json` 中保存 `apiKey`。0.3.0 在运行配置、恢复、线路选择或诊断命令时会删除该字段，并将文件权限设为 `0600`。
 
 FriendAIX 不会删除所选客户端自己的密钥配置，因为这些客户端仍需要凭证才能运行。
+
+OpenCode 的 FriendAIX API Key 会从 `~/.config/opencode/opencode.json` 或 `opencode.jsonc` 迁移到 OpenCode 的独立凭据文件 `~/.local/share/opencode/auth.json`。如果 JSON 与 JSONC 并存，会更新高优先级 JSONC，并清除旧 JSON 中的 FriendAIX 明文密钥；其他 provider 配置、注释和凭据保持不变，涉及的文件都会进入同一次事务备份。
 
 ## 备份格式
 

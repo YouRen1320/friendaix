@@ -1,12 +1,15 @@
 import { randomUUID } from 'node:crypto';
-import { readFile, readdir, rm } from 'node:fs/promises';
-import { basename, isAbsolute, join, resolve, sep } from 'node:path';
+import { lstat, readFile, readdir, rm } from 'node:fs/promises';
+import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { errorMessage } from './errors.js';
 import {
   atomicWriteFile,
+  cleanupAtomicWriteTemps,
   ensurePrivateDirectory,
   fileMode,
   pathExists,
+  readOptionalFileWithExpectation,
+  readRegularFile,
   sha256,
 } from './filesystem.js';
 import type {
@@ -52,50 +55,107 @@ function storedBackupPath(directory: string, relativePath: string): string {
   return candidate;
 }
 
+async function assertStoredParents(
+  directory: string,
+  candidate: string,
+): Promise<void> {
+  const segments = relative(resolve(directory), candidate).split(sep);
+  let current = resolve(directory);
+  const root = await lstat(current);
+  if (!root.isDirectory())
+    throw new Error(`备份目录不是普通目录：${directory}`);
+  for (const segment of segments.slice(0, -1)) {
+    current = join(current, segment);
+    const metadata = await lstat(current);
+    if (!metadata.isDirectory()) {
+      throw new Error(`备份内容父路径不是普通目录：${current}`);
+    }
+  }
+}
+
+export async function readSnapshotContent(
+  directory: string,
+  snapshot: FileSnapshot,
+): Promise<Buffer> {
+  if (!snapshot.backupFile || !snapshot.sha256) {
+    throw new Error(`备份 ${snapshot.targetPath} 缺少内容或校验值。`);
+  }
+  const candidate = storedBackupPath(directory, snapshot.backupFile);
+  await assertStoredParents(directory, candidate);
+  const content = await readRegularFile(candidate);
+  if (sha256(content) !== snapshot.sha256) {
+    throw new Error(`备份 ${snapshot.targetPath} 校验失败，拒绝恢复。`);
+  }
+  return content;
+}
+
 export async function createSnapshotBackup(
   backupRoot: string,
   kind: BackupKind,
   descriptors: SnapshotDescriptor[],
   sourceBackupId?: string,
 ): Promise<BackupEntry> {
+  const seen = new Set<string>();
+  for (const descriptor of descriptors) {
+    if (!descriptor.clientId || !isAbsolute(descriptor.targetPath)) {
+      throw new Error('备份目标必须包含客户端 ID 和绝对路径。');
+    }
+    const key = resolve(descriptor.targetPath);
+    if (seen.has(key)) {
+      throw new Error(`备份目标重复：${descriptor.targetPath}`);
+    }
+    seen.add(key);
+  }
   await ensurePrivateDirectory(backupRoot);
   const id = createBackupId(kind);
   const directory = join(backupRoot, id);
   await ensurePrivateDirectory(directory);
   await ensurePrivateDirectory(join(directory, 'files'));
 
-  const files: FileSnapshot[] = [];
-  for (const [index, descriptor] of descriptors.entries()) {
-    const existed = await pathExists(descriptor.targetPath);
-    if (!existed) {
-      files.push({ ...descriptor, existed: false });
-      continue;
+  try {
+    const files: FileSnapshot[] = [];
+    for (const [index, descriptor] of descriptors.entries()) {
+      const current = await readOptionalFileWithExpectation(
+        descriptor.targetPath,
+      );
+      if (!current.content) {
+        files.push({ ...descriptor, existed: false });
+        continue;
+      }
+
+      const relativeBackup = backupName(index, descriptor.targetPath);
+      await atomicWriteFile(
+        join(directory, relativeBackup),
+        current.content,
+        0o600,
+      );
+      files.push({
+        ...descriptor,
+        existed: true,
+        backupFile: relativeBackup,
+        originalMode: await fileMode(descriptor.targetPath),
+        sha256: current.expectation.sha256,
+      });
     }
 
-    const content = await readFile(descriptor.targetPath);
-    const relativeBackup = backupName(index, descriptor.targetPath);
-    await atomicWriteFile(join(directory, relativeBackup), content, 0o600);
-    files.push({
-      ...descriptor,
-      existed: true,
-      backupFile: relativeBackup,
-      originalMode: await fileMode(descriptor.targetPath),
-      sha256: sha256(content),
-    });
+    const manifest: BackupManifest = {
+      schemaVersion: 2,
+      id,
+      kind,
+      createdAt: new Date().toISOString(),
+      status: 'prepared',
+      clients: [...new Set(descriptors.map((item) => item.clientId))],
+      files,
+      ...(sourceBackupId ? { sourceBackupId } : {}),
+    };
+    await writeManifest(directory, manifest);
+    return { directory, manifest };
+  } catch (error: unknown) {
+    await rm(directory, { recursive: true, force: true }).catch(
+      () => undefined,
+    );
+    throw error;
   }
-
-  const manifest: BackupManifest = {
-    schemaVersion: 2,
-    id,
-    kind,
-    createdAt: new Date().toISOString(),
-    status: 'prepared',
-    clients: [...new Set(descriptors.map((item) => item.clientId))],
-    files,
-    ...(sourceBackupId ? { sourceBackupId } : {}),
-  };
-  await writeManifest(directory, manifest);
-  return { directory, manifest };
 }
 
 export async function markBackup(
@@ -134,26 +194,46 @@ export async function readBackup(directory: string): Promise<BackupEntry> {
     manifest.schemaVersion !== 2 ||
     typeof manifest.id !== 'string' ||
     typeof manifest.createdAt !== 'string' ||
+    Number.isNaN(Date.parse(manifest.createdAt)) ||
     !Array.isArray(manifest.files) ||
     !Array.isArray(manifest.clients) ||
+    manifest.clients.some(
+      (client) => typeof client !== 'string' || client.length === 0,
+    ) ||
+    (manifest.sourceBackupId !== undefined &&
+      typeof manifest.sourceBackupId !== 'string') ||
+    (manifest.error !== undefined && typeof manifest.error !== 'string') ||
     (manifest.kind !== 'configuration' && manifest.kind !== 'restore-safety') ||
     !['prepared', 'applied', 'rolled-back'].includes(manifest.status ?? '')
   ) {
     throw new Error(`${manifestPath} 缺少必要字段或版本不受支持。`);
   }
+  const seenTargets = new Set<string>();
   for (const file of manifest.files) {
     if (
       !file ||
       typeof file !== 'object' ||
       typeof file.clientId !== 'string' ||
       typeof file.targetPath !== 'string' ||
+      !isAbsolute(file.targetPath) ||
       typeof file.existed !== 'boolean' ||
       (file.existed &&
         (typeof file.backupFile !== 'string' ||
-          typeof file.sha256 !== 'string'))
+          file.backupFile.length === 0 ||
+          typeof file.sha256 !== 'string')) ||
+      (file.originalMode !== undefined &&
+        (!Number.isInteger(file.originalMode) ||
+          file.originalMode < 0 ||
+          file.originalMode > 0o777))
     ) {
       throw new Error(`${manifestPath} 包含非法文件记录。`);
     }
+    const key = resolve(file.targetPath);
+    if (seenTargets.has(key)) {
+      throw new Error(`${manifestPath} 包含重复目标路径。`);
+    }
+    seenTargets.add(key);
+    if (file.backupFile) storedBackupPath(directory, file.backupFile);
   }
   return { directory, manifest: manifest as BackupManifest };
 }
@@ -202,15 +282,7 @@ async function applySnapshotReferences(
       removed.push(snapshot.targetPath);
       continue;
     }
-    if (!snapshot.backupFile || !snapshot.sha256) {
-      throw new Error(`备份 ${snapshot.targetPath} 缺少内容或校验值。`);
-    }
-    const content = await readFile(
-      storedBackupPath(directory, snapshot.backupFile),
-    );
-    if (sha256(content) !== snapshot.sha256) {
-      throw new Error(`备份 ${snapshot.targetPath} 校验失败，拒绝恢复。`);
-    }
+    const content = await readSnapshotContent(directory, snapshot);
     await atomicWriteFile(
       snapshot.targetPath,
       content,
@@ -308,6 +380,11 @@ export async function recoverInterruptedOperations(
     .reverse();
   const recovered: BackupEntry[] = [];
   for (const backup of interrupted) {
+    await Promise.all(
+      backup.manifest.files.map((snapshot) =>
+        cleanupAtomicWriteTemps(snapshot.targetPath),
+      ),
+    );
     const references = backup.manifest.files.map((snapshot) => ({
       directory: backup.directory,
       snapshot,

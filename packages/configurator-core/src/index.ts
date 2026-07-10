@@ -17,6 +17,8 @@ export {
   ensurePrivateDirectory,
   fileMode,
   pathExists,
+  readOptionalTextFileWithExpectation,
 } from './filesystem.js';
+export type { OptionalTextFileRead } from './filesystem.js';
 export { applyConfiguration } from './transaction.js';
 export type * from './types.js';

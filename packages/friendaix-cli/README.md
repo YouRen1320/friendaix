@@ -26,9 +26,13 @@ API Key 输入不会回显，也不会保存在 `~/.friendaix/state.json`。它�
 
 - Claude Code：`~/.claude/settings.json`
 - Codex CLI：`~/.codex/auth.json` 和 `~/.codex/config.toml`
-- OpenCode：`~/.config/opencode/opencode.json`
+- OpenCode：`~/.local/share/opencode/auth.json`，以及 `~/.config/opencode/opencode.json` 或 `opencode.jsonc`
 
-所有客户端写入属于同一个事务。FriendAIX 会先备份全部目标；任一写入失败时自动回滚。恢复时，配置前不存在的文件会被删除。
+OpenCode 的密钥放在其独立 credential store，普通配置文件不再嵌入 FriendAIX API Key。
+
+所有客户端写入属于同一个事务。FriendAIX 会先备份全部目标；任一写入失败时自动回滚。恢复时，配置前不存在的文件会被删除。若文件在变更预览后被其他程序修改，写入会被拒绝，避免旧计划静默覆盖新内容。符号链接和其他特殊文件也会被拒绝，避免原子替换破坏链接。
+
+`friendaix doctor` 和 `friendaix configure --dry-run` 是只读命令，不执行旧 state 迁移或中断事务恢复。
 
 > 切换 Codex 到 FriendAIX API Key 会替换当前 ChatGPT 登录，并可能禁用依赖 ChatGPT 身份的功能。检测到现有 OAuth token 时，CLI 会在执行前再次确认。
 

@@ -4,7 +4,7 @@
   "description": "友人 AI 助手 — 安全配置 Claude Code / Codex / OpenCode",
   "type": "module",
   "bin": {
-    "friendaix": "./dist/cli.js"
+    "friendaix": "dist/cli.js"
   },
   "files": [
     "dist",

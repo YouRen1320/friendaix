@@ -24,6 +24,7 @@ friendaix CLI
 - 将要写入的完整文件内容；
 - 是否包含秘密；
 - 建议权限；
+- 生成计划所依据文件的存在状态和 SHA-256；
 - 需要用户确认的警告。
 
 这样 CLI、测试或其他产品可以在执行前展示计划，并统一处理确认。
@@ -34,14 +35,19 @@ friendaix CLI
 
 1. 检查目标路径没有重复。
 2. 快照所有目标，包括“不存在”状态、原权限和哈希。
-3. 将 manifest 标记为 `prepared`。
-4. 通过同目录临时文件逐个原子替换。
-5. 成功后标记为 `applied`。
-6. 任一写入失败，按快照恢复或删除本次新建文件，并标记为 `rolled-back`。
+3. 比较快照与 adapter 计划的前置条件；已变化则不写入并标记为 `rolled-back`。
+4. 将 manifest 保持为 `prepared`，每个文件写入前再次检查它没有在快照后变化。
+5. 通过同目录临时文件逐个原子替换。
+6. 成功后标记为 `applied`。
+7. 任一写入失败，只回滚本次已经写过的文件，并标记为 `rolled-back`。
 
-如果进程在写入期间被强制终止，manifest 会停留在 `prepared`。CLI 下次启动会先创建当前状态安全备份，再自动回滚这些中断操作。
+目标配置和备份内容必须是普通文件。符号链接或其他特殊文件会在读取阶段被拒绝，因为基于 rename 的原子替换会把链接本身替换成普通文件；静默改变用户的 dotfiles 拓扑不属于可接受行为。
+
+如果进程在写入期间被强制终止，manifest 会停留在 `prepared`。CLI 下次启动会清理该操作目标旁符合精确 FriendAIX UUID 命名的原子写入临时文件，再创建当前状态安全备份并自动回滚中断操作。
 
 网络自检不属于文件事务。服务端临时不可用不应撤销一个用户已经确认且写入正确的本地配置。
+
+`doctor` 与 `configure --dry-run` 是只读路径，不执行旧 state 迁移或 `prepared` 操作恢复；诊断会报告待恢复操作，正常交互/配置入口再执行自动恢复。
 
 ### 恢复也必须可回滚
 
@@ -51,7 +57,9 @@ friendaix CLI
 
 ### 密钥最少复制
 
-核心库不决定密钥来源。FriendAIX CLI 使用不回显输入，并只把密钥写入所选客户端所需配置。自己的 state 只保存站点和客户端 ID。
+核心库不决定密钥来源。FriendAIX CLI 使用不回显输入，并只把密钥写入所选客户端所需配置。自己的 state 只保存站点和客户端 ID。OpenCode adapter 将密钥放在独立 `auth.json`，provider 和模型放在不含 FriendAIX 密钥的 `opencode.json` 或 `opencode.jsonc`；JSONC 的非受管注释会被保留。
+
+`AdapterContext` 默认只依赖显式 `homeDir`，便于隔离测试。CLI 会额外传入环境快照和平台，使内置 adapter 遵循 Claude/Codex 的自定义目录、OpenCode/XDG 目录和 Windows `LOCALAPPDATA`，同时避免核心库在调用方未授权时隐式读取进程环境。
 
 ## 新增品牌 preset
 

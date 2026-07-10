@@ -1,8 +1,8 @@
 import { homedir } from 'node:os';
 import { intro, note, outro, spinner } from '@clack/prompts';
 import pc from 'picocolors';
-import { pathExists, scanBackups, type AdapterContext } from 'friendaix-core';
-import { ALL_CLIENTS } from '../clients.js';
+import { pathExists, scanBackups } from 'friendaix-core';
+import { adapterContext, ALL_CLIENTS } from '../clients.js';
 import { pingAll } from '../sites.js';
 import { backupDir, stateFile } from '../state.js';
 
@@ -14,7 +14,7 @@ function nodeVersionOk(): boolean {
 }
 
 export async function runDoctor(homeDir = homedir()): Promise<void> {
-  const context: AdapterContext = { homeDir };
+  const context = adapterContext(homeDir);
   intro(pc.cyan(' 环境诊断 '));
   const networkSpinner = spinner();
   networkSpinner.start('检查服务线路');
@@ -36,13 +36,24 @@ export async function runDoctor(homeDir = homedir()): Promise<void> {
       await Promise.all(files.map((path) => pathExists(path)))
     ).filter(Boolean).length;
     lines.push(
-      `${existing > 0 ? pc.green('✓') : pc.dim('•')} ${client.name} 配置 ${existing}/${files.length}`,
+      `${existing > 0 ? pc.green('✓') : pc.dim('•')} ${client.name} 配置文件 ${existing} 个`,
     );
   }
-  const backupCount = (await scanBackups(backupDir(homeDir))).filter(
+  const backups = (await scanBackups(backupDir(homeDir))).filter(
     ({ manifest }) => manifest.kind === 'configuration',
+  );
+  const restorable = backups.filter(
+    ({ manifest }) => manifest.status === 'applied',
   ).length;
-  lines.push(`${pc.dim('•')} 事务备份 ${backupCount} 个`);
+  const interrupted = backups.filter(
+    ({ manifest }) => manifest.status === 'prepared',
+  ).length;
+  lines.push(`${pc.dim('•')} 可恢复事务快照 ${restorable} 个`);
+  if (interrupted > 0) {
+    lines.push(
+      `${pc.yellow('⚠')} 待恢复的中断操作 ${interrupted} 个（运行交互菜单或配置命令时自动恢复）`,
+    );
+  }
   note(lines.join('\n'), '诊断结果');
   outro(nodeVersionOk() ? '诊断完成。' : pc.red('请先升级 Node.js。'));
 }

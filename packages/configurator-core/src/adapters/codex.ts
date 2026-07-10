@@ -1,8 +1,7 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { isAbsolute, join } from 'node:path';
 import { parse as parseToml } from 'smol-toml';
-import { pathExists } from '../filesystem.js';
-import { jsonWithNewline, readJsonObject } from '../json.js';
+import { pathExists, readOptionalFileWithExpectation } from '../filesystem.js';
+import { jsonWithNewline, readJsonObjectFile } from '../json.js';
 import type {
   AdapterContext,
   AdapterPlan,
@@ -10,6 +9,7 @@ import type {
   ConfigureInput,
   PlanWarning,
 } from '../types.js';
+import { assertConfigureInput } from '../validation.js';
 
 export interface CodexAdapterOptions {
   id?: string;
@@ -78,7 +78,7 @@ function replaceProviderBlock(
     'requires_openai_auth = true',
     markers.end,
   ].join('\n');
-  return `${stripped ? `${stripped}\n\n` : ''}${block}\n`;
+  return `${stripped ? `${stripped}\n\n` : '\n'}${block}\n`;
 }
 
 export function createCodexAdapter(
@@ -87,12 +87,28 @@ export function createCodexAdapter(
   if (!/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(options.providerId)) {
     throw new Error(`非法 Codex provider id：${options.providerId}`);
   }
+  if (!options.providerName.trim()) {
+    throw new Error('Codex provider 显示名称不能为空。');
+  }
   const id = options.id ?? 'codex';
   const name = options.name ?? 'Codex CLI';
+  if (!id.trim() || !name.trim()) {
+    throw new Error('Codex adapter ID 和名称不能为空。');
+  }
+  const codexDirectory = (context: AdapterContext) => {
+    const override = context.environment?.CODEX_HOME;
+    if (override) {
+      if (!isAbsolute(override)) {
+        throw new Error('CODEX_HOME 必须是绝对路径。');
+      }
+      return override;
+    }
+    return join(context.homeDir, '.codex');
+  };
   const authPath = (context: AdapterContext) =>
-    join(context.homeDir, '.codex', 'auth.json');
+    join(codexDirectory(context), 'auth.json');
   const configPath = (context: AdapterContext) =>
-    join(context.homeDir, '.codex', 'config.toml');
+    join(codexDirectory(context), 'config.toml');
 
   return {
     id,
@@ -103,16 +119,18 @@ export function createCodexAdapter(
     },
 
     async isInstalled(context) {
-      return pathExists(join(context.homeDir, '.codex'));
+      return pathExists(codexDirectory(context));
     },
 
     async plan(
       input: ConfigureInput,
       context: AdapterContext,
     ): Promise<AdapterPlan> {
+      assertConfigureInput(input);
       const authFile = authPath(context);
       const configFile = configPath(context);
-      const auth = (await readJsonObject(authFile)) ?? {};
+      const authDocument = await readJsonObjectFile(authFile);
+      const auth = authDocument.value ?? {};
       const warnings: PlanWarning[] = [];
       if (
         auth.auth_mode === 'chatgpt' ||
@@ -132,9 +150,8 @@ export function createCodexAdapter(
       delete nextAuth.tokens;
       delete nextAuth.last_refresh;
 
-      let config = (await pathExists(configFile))
-        ? await readFile(configFile, 'utf8')
-        : '';
+      const configDocument = await readOptionalFileWithExpectation(configFile);
+      let config = configDocument.content?.toString('utf8') ?? '';
       if (config.trim()) parseToml(config);
       config = replaceProviderBlock(config, options, input.baseUrl);
       config = setTopLevelValue(
@@ -142,6 +159,13 @@ export function createCodexAdapter(
         'model_provider',
         tomlString(options.providerId),
       );
+      if (input.primaryModel) {
+        config = setTopLevelValue(
+          config,
+          'model',
+          tomlString(input.primaryModel),
+        );
+      }
       parseToml(config);
 
       return {
@@ -153,6 +177,7 @@ export function createCodexAdapter(
             path: authFile,
             content: jsonWithNewline(nextAuth),
             containsSecret: true,
+            expected: authDocument.expectation,
             mode: 0o600,
           },
           {
@@ -160,6 +185,7 @@ export function createCodexAdapter(
             path: configFile,
             content: config,
             containsSecret: false,
+            expected: configDocument.expectation,
           },
         ],
         warnings,

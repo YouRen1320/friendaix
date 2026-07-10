@@ -2,6 +2,7 @@ import {
   createClaudeAdapter,
   createCodexAdapter,
   createOpenCodeAdapter,
+  type AdapterContext,
   type ClientAdapter,
 } from 'friendaix-core';
 import {
@@ -33,4 +34,13 @@ export const ALL_CLIENTS: ClientAdapter[] = [
 
 export function getClient(id: string): ClientAdapter | undefined {
   return ALL_CLIENTS.find((client) => client.id === id);
+}
+
+/** Captures path-related process state once for deterministic adapter planning. */
+export function adapterContext(homeDir: string): AdapterContext {
+  return {
+    homeDir,
+    environment: process.env,
+    platform: process.platform,
+  };
 }

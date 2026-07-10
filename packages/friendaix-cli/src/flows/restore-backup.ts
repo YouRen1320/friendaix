@@ -17,7 +17,7 @@ import {
   scanBackups,
   type AdapterContext,
 } from 'friendaix-core';
-import { ALL_CLIENTS } from '../clients.js';
+import { adapterContext, ALL_CLIENTS } from '../clients.js';
 import { backupDir } from '../state.js';
 
 type RestoreAction = 'original' | 'operation' | 'back';
@@ -27,7 +27,7 @@ function allowedConfigPaths(context: AdapterContext): string[] {
 }
 
 export async function runRestoreBackup(homeDir = homedir()): Promise<void> {
-  const context: AdapterContext = { homeDir };
+  const context = adapterContext(homeDir);
   const root = backupDir(homeDir);
   intro(pc.cyan(' 恢复配置 '));
 

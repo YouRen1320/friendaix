@@ -36,7 +36,7 @@ describe('FriendAIX preset behavior', () => {
       { id: 'gpt-live-mini' },
     ]);
     expect(resolved.claudePrimary).toBe('claude-live');
-    expect(resolved.codexProbe).toBe('gpt-live');
+    expect(resolved.codexModel).toBe('gpt-live');
     expect(resolved.openCodeSmall).toBe('gpt-live-mini');
   });
 

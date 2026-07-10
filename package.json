@@ -19,7 +19,7 @@
     "smoke": "node scripts/smoke-test.mjs"
   },
   "engines": {
-    "node": ">=20.12"
+    "node": ">=20.19"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

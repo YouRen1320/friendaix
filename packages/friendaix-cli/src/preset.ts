@@ -19,7 +19,7 @@ export const DEFAULT_CLAUDE_MODEL = 'claude-sonnet-4-6';
 export const DEFAULT_CLAUDE_SMALL_MODEL = 'claude-haiku-4-5-20251001';
 export const DEFAULT_OPENCODE_MODEL = 'claude-sonnet-4-6';
 export const DEFAULT_OPENCODE_SMALL_MODEL = 'gpt-4o-mini';
-export const DEFAULT_CODEX_PROBE_MODEL = 'gpt-5.5';
+export const DEFAULT_CODEX_MODEL = 'gpt-5.5';
 
 export interface Site {
   id: string;

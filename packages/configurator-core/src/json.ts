@@ -1,16 +1,21 @@
-import { readFile } from 'node:fs/promises';
 import { assertRecord, errorMessage } from './errors.js';
-import { pathExists } from './filesystem.js';
+import { readOptionalFileWithExpectation } from './filesystem.js';
+import type { FileExpectation } from './types.js';
 
-export async function readJsonObject(
+export interface JsonObjectFile {
+  value: Record<string, unknown> | null;
+  expectation: FileExpectation;
+}
+
+export async function readJsonObjectFile(
   path: string,
-): Promise<Record<string, unknown> | null> {
-  if (!(await pathExists(path))) return null;
-  const text = await readFile(path, 'utf8');
+): Promise<JsonObjectFile> {
+  const { content, expectation } = await readOptionalFileWithExpectation(path);
+  if (!content) return { value: null, expectation };
   try {
-    const parsed: unknown = JSON.parse(text);
+    const parsed: unknown = JSON.parse(content.toString('utf8'));
     assertRecord(parsed, path);
-    return parsed;
+    return { value: parsed, expectation };
   } catch (error: unknown) {
     throw new Error(
       `${path} 不是合法 JSON，拒绝覆盖。请先修复或移走该文件：${errorMessage(error)}`,

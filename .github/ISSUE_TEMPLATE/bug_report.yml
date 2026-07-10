@@ -1,0 +1,60 @@
+name: Bug report
+description: 报告可复现的 FriendAIX 行为问题
+title: '[Bug]: '
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: 请勿粘贴真实 API Key、OAuth token、auth.json 或完整备份内容。
+  - type: input
+    id: version
+    attributes:
+      label: FriendAIX version
+      placeholder: 0.3.0
+    validations:
+      required: true
+  - type: dropdown
+    id: client
+    attributes:
+      label: Client
+      options:
+        - Claude Code
+        - Codex CLI
+        - OpenCode
+        - Core library / transaction
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: 操作系统、Node.js 版本和客户端版本
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: 最小复现步骤；所有密钥和私人路径必须脱敏
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: 我已确认内容不含真实凭据或未脱敏的用户配置。
+          required: true
