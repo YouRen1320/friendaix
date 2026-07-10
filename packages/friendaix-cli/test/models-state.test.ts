@@ -85,6 +85,9 @@ describe('FriendAIX preset behavior', () => {
     const persisted = await readFile(stateFile(homeDir), 'utf8');
     expect(persisted).not.toContain('legacy-secret');
     expect(persisted).not.toContain('apiKey');
-    expect((await stat(stateFile(homeDir))).mode & 0o777).toBe(0o600);
+    // Windows enforces file access with ACLs and reports synthetic POSIX modes.
+    if (process.platform !== 'win32') {
+      expect((await stat(stateFile(homeDir))).mode & 0o777).toBe(0o600);
+    }
   });
 });
