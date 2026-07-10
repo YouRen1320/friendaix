@@ -1,0 +1,33 @@
+name: Publish npm packages
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: npm install --global npm@latest
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+      - run: npm run smoke
+      - name: Verify release version
+        run: |
+          test "v$(node -p "require('./packages/friendaix-cli/package.json').version")" = "${{ github.event.release.tag_name }}"
+          test "$(node -p "require('./packages/configurator-core/package.json').version")" = "$(node -p "require('./packages/friendaix-cli/package.json').version")"
+      - run: npm publish --workspace=friendaix-core --access public
+      - run: npm publish --workspace=friendaix --access public

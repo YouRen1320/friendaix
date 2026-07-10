@@ -1,0 +1,56 @@
+{
+  "name": "friendaix",
+  "version": "0.3.0",
+  "description": "友人 AI 助手 — 安全配置 Claude Code / Codex / OpenCode",
+  "type": "module",
+  "bin": {
+    "friendaix": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "check": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js",
+    "prepublishOnly": "npm run check && npm run test && npm run build"
+  },
+  "engines": {
+    "node": ">=20.12"
+  },
+  "keywords": [
+    "cli",
+    "claude-code",
+    "codex",
+    "opencode",
+    "friendaix",
+    "npx"
+  ],
+  "license": "MIT",
+  "author": "YouR.AI",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YouRen1320/friendaix.git",
+    "directory": "packages/friendaix-cli"
+  },
+  "bugs": {
+    "url": "https://github.com/YouRen1320/friendaix/issues"
+  },
+  "homepage": "https://friendaix.com",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.7.0",
+    "friendaix-core": "0.3.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1"
+  }
+}

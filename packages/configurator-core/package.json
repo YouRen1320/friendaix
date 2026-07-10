@@ -1,0 +1,56 @@
+{
+  "name": "friendaix-core",
+  "version": "0.3.0",
+  "description": "Reusable, transactional configuration engine for AI coding clients",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": ">=20.12"
+  },
+  "keywords": [
+    "cli",
+    "configuration",
+    "claude-code",
+    "codex",
+    "opencode",
+    "backup"
+  ],
+  "license": "MIT",
+  "author": "YouR.AI",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YouRen1320/friendaix.git",
+    "directory": "packages/configurator-core"
+  },
+  "bugs": {
+    "url": "https://github.com/YouRen1320/friendaix/issues"
+  },
+  "homepage": "https://github.com/YouRen1320/friendaix#readme",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "smol-toml": "^1.7.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1"
+  }
+}
