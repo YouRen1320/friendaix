@@ -40,7 +40,8 @@ for (const [workspace, requiredFiles] of expectations) {
   }
   if (workspace === 'friendaix') {
     const cli = report.files.find((file) => file.path === 'dist/cli.js');
-    if (!cli || (cli.mode & 0o111) === 0) {
+    // Windows package reports do not expose POSIX execute bits; npm uses a .cmd shim there.
+    if (!cli || (process.platform !== 'win32' && (cli.mode & 0o111) === 0)) {
       throw new Error('friendaix dist/cli.js is not executable');
     }
   }
