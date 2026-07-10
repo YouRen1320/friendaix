@@ -27,6 +27,6 @@ FriendAIX 会修改用户级 AI 客户端配置，因此以下行为被视为安
 - 配置目标和备份内容必须是普通文件，不跟随符号链接；
 - 中断事务恢复必须清理受管目标旁遗留的 FriendAIX 原子写入临时文件；
 - 恢复目标必须属于 adapter 声明的允许路径；
-- npm 发布必须使用 Trusted Publishing/OIDC 和 provenance。
+- 正式 npm 版本必须使用 Trusted Publishing/OIDC 和 provenance；首次注册新包所需的 bootstrap 预发行版本是一次性例外，必须使用账号 2FA、`bootstrap` tag 和 `--provenance=false`，随后立即配置 Trusted Publisher。
 
 FriendAIX 无法保护已经被其他程序读取的明文客户端配置，也无法保证第三方 API 网关或客户端本身的数据处理方式。

@@ -105,7 +105,7 @@ npm run smoke
 1. 创建 `YouRen1320/friendaix` 公共仓库。
 2. 创建受保护的 GitHub `npm` environment。
 3. `friendaix` 已存在，可直接在 npm 配置 Trusted Publisher：工作流文件名 `publish.yml`、environment `npm`、allowed action 选择 `npm publish`。
-4. npm 只允许给已存在的包配置 Trusted Publisher。首次创建 `friendaix-core` 时，在仓库的临时 clone 中把 core 版本改成 `0.3.0-bootstrap.0`，使用账号 2FA 手工发布到 `bootstrap` tag；不要在正式工作树中改版本，也不要把 token 写进仓库。
+4. npm 只允许给已存在的包配置 Trusted Publisher。首次创建 `friendaix-core` 时，在仓库的临时 clone 中把 core 版本改成 `0.3.0-bootstrap.0`，使用账号 2FA 手工发布到 `bootstrap` tag；本地 bootstrap 没有 OIDC provider，必须显式关闭 provenance。不要在正式工作树中改版本，也不要把 token 写进仓库。
 5. 为已创建的 `friendaix-core` 配置与第 3 步相同的 Trusted Publisher。确认两个包的 trust 后，再创建 `v0.3.0` GitHub Release；工作流会先发布 core，再发布 CLI。
 
 首次 bootstrap 示例（只在临时 clone 中执行）：
@@ -114,8 +114,10 @@ npm run smoke
 npm ci
 npm run build --workspace=friendaix-core
 npm pkg set version=0.3.0-bootstrap.0 --workspace=friendaix-core
-npm publish --workspace=friendaix-core --access public --tag bootstrap
+npm publish --workspace=friendaix-core --access public --tag bootstrap --provenance=false
 ```
+
+首次创建包时，npm 可能在只有一个版本的情况下同时把 bootstrap 设为临时 `latest`，且不允许删除唯一版本的 `latest` tag。应立即配置 Trusted Publisher 并发布正式版本，由正式版本接管 `latest`。
 
 发布工作流固定使用 npm 11.18.0，校验三处版本、包内容、公共类型、生产依赖审计和完整测试后才执行 `npm publish`。
 
