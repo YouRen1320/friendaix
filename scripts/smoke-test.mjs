@@ -3,8 +3,12 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const node = process.execPath;
+// Execute npm's JavaScript entrypoint so smoke tests do not depend on a platform shell.
+const npmCli = process.env.npm_execpath;
+if (!npmCli) {
+  throw new Error('Run smoke tests through the npm script');
+}
 const temporaryDirectory = mkdtempSync(join(tmpdir(), 'friendaix-smoke-'));
 
 function run(command, args, options = {}) {
@@ -24,8 +28,9 @@ function run(command, args, options = {}) {
 
 function pack(workspace) {
   const output = run(
-    npm,
+    node,
     [
+      npmCli,
       'pack',
       `--workspace=${workspace}`,
       `--pack-destination=${temporaryDirectory}`,
@@ -40,8 +45,9 @@ function pack(workspace) {
 try {
   const corePackage = pack('friendaix-core');
   const cliPackage = pack('friendaix');
-  run(npm, ['init', '-y']);
-  run(npm, [
+  run(node, [npmCli, 'init', '-y']);
+  run(node, [
+    npmCli,
     'install',
     '--ignore-scripts',
     '--no-audit',

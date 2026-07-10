@@ -44,4 +44,4 @@ jobs:
         with:
           node-version: 20.12
           package-manager-cache: false
-      - run: node scripts/smoke-test.mjs
+      - run: npm run smoke

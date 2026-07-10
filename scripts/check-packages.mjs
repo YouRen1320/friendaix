@@ -1,6 +1,10 @@
 import { spawnSync } from 'node:child_process';
 
-const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+// Execute npm's JavaScript entrypoint so package checks do not depend on a platform shell.
+const npmCli = process.env.npm_execpath;
+if (!npmCli) {
+  throw new Error('Run package checks through the npm script');
+}
 const expectations = new Map([
   [
     'friendaix-core',
@@ -11,8 +15,9 @@ const expectations = new Map([
 
 for (const [workspace, requiredFiles] of expectations) {
   const result = spawnSync(
-    npm,
+    process.execPath,
     [
+      npmCli,
       'pack',
       `--workspace=${workspace}`,
       '--dry-run',
@@ -21,8 +26,10 @@ for (const [workspace, requiredFiles] of expectations) {
     ],
     { encoding: 'utf8' },
   );
-  if (result.status !== 0) {
-    throw new Error(result.stderr || `npm pack failed for ${workspace}`);
+  if (result.error || result.status !== 0) {
+    throw new Error(
+      `${result.error ?? ''}\n${result.stderr || `npm pack failed for ${workspace}`}`,
+    );
   }
   const report = JSON.parse(result.stdout)[0];
   const files = new Set(report.files.map((file) => file.path));
