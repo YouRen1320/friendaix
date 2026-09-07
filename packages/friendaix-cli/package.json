@@ -40,7 +40,7 @@
   "bugs": {
     "url": "https://github.com/YouRen1320/friendaix/issues"
   },
-  "homepage": "https://friendaix.com",
+  "homepage": "https://github.com/YouRen1320/friendaix#readme",
   "publishConfig": {
     "access": "public",
     "provenance": true

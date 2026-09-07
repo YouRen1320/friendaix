@@ -1,4 +1,4 @@
-name: Publish npm packages
+name: 发布 npm 包
 
 on:
   release:
@@ -8,17 +8,30 @@ permissions:
   contents: read
   id-token: write
 
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+
 jobs:
   publish:
+    name: 校验并发布正式版本
+    if: github.event.release.prerelease == false && github.event.release.draft == false
     runs-on: ubuntu-latest
     environment: npm
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+      - name: 检出发布标签
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: 配置 Node.js 与 npm registry
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
+      - name: 确认发布提交属于 main
+        run: git merge-base --is-ancestor HEAD origin/main
       - run: npm install --global npm@11.18.0
       - run: npm ci
       - run: npm run check
@@ -27,7 +40,7 @@ jobs:
       - run: npm run pack:check
       - run: npm run smoke
       - run: npm audit --omit=dev --audit-level=high
-      - name: Verify release version
+      - name: 校验 Release 与三处包版本
         run: |
           test "v$(node -p "require('./packages/friendaix-cli/package.json').version")" = "${{ github.event.release.tag_name }}"
           test "$(node -p "require('./packages/configurator-core/package.json').version")" = "$(node -p "require('./packages/friendaix-cli/package.json').version")"
