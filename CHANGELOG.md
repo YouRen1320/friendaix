@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Changed
+
+- 修正 npm、GitHub Release 与 README 的 0.3.0 发布状态说明。
+- 更新 CI 与发布工作流使用的 GitHub Actions，并强化正式发布来源校验。
+- CLI 包主页改为可用的 GitHub 项目页。
+
 ## [0.3.0] - 2026-07-10
 
 ### Added
