@@ -19,6 +19,7 @@ export async function readJsonObjectFile(
   } catch (error: unknown) {
     throw new Error(
       `${path} 不是合法 JSON，拒绝覆盖。请先修复或移走该文件：${errorMessage(error)}`,
+      { cause: error },
     );
   }
 }

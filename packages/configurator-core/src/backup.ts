@@ -320,7 +320,9 @@ async function restoreReferences(
     }));
     await applySnapshotReferences(safetyReferences).catch(() => undefined);
     await markBackup(safety, 'rolled-back', errorMessage(error));
-    throw new Error(`恢复失败，已尝试回滚当前配置：${errorMessage(error)}`);
+    throw new Error(`恢复失败，已尝试回滚当前配置：${errorMessage(error)}`, {
+      cause: error,
+    });
   }
 }
 
