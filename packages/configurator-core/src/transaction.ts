@@ -153,8 +153,11 @@ export async function applyConfiguration(
     if (rollbackError) {
       throw new Error(
         `配置失败且回滚未完全成功：${errorMessage(error)}；${rollbackError}`,
+        { cause: error },
       );
     }
-    throw new Error(`配置失败，已回滚本次写入：${errorMessage(error)}`);
+    throw new Error(`配置失败，已回滚本次写入：${errorMessage(error)}`, {
+      cause: error,
+    });
   }
 }
