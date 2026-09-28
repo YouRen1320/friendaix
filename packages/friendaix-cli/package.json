@@ -1,6 +1,6 @@
 {
   "name": "friendaix",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "友人 AI 助手 — 安全配置 Claude Code / Codex / OpenCode",
   "type": "module",
   "bin": {

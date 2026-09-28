@@ -2,13 +2,17 @@
 
 本项目遵循 Semantic Versioning。
 
-## [Unreleased]
+## [0.3.1] - 2026-09-28
 
 ### Changed
 
 - 修正 npm、GitHub Release 与 README 的 0.3.0 发布状态说明。
 - 更新 CI 与发布工作流使用的 GitHub Actions，并强化正式发布来源校验。
 - CLI 包主页改为可用的 GitHub 项目页。
+- 依赖安全刷新：`@clack/prompts` 1.8.1（修复兼容工具依赖漏洞）、`smol-toml` 1.9.0；
+  开发依赖更新至 eslint 10 系列、`@eslint/js` 10、`@types/node` 26 与 tsx/typescript-eslint 补丁版本。
+- `configurator-core` 中 4 处捕获后重抛的错误附加 `cause`，保留完整错误链；
+  错误消息与控制流不变，不影响调用方 API。
 
 ## [0.3.0] - 2026-07-10
 
